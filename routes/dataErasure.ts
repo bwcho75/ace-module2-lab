@@ -101,8 +101,30 @@ router.post('/', (req: Request<Record<string, unknown>, Record<string, unknown>,
       }
 
       if (req.body.layout) {
-        const filePath: string = path.resolve(req.body.layout).toLowerCase()
-        const isForbiddenFile: boolean = (filePath.includes('ftp') || filePath.includes('ctf.key') || filePath.includes('encryptionkeys'))
+        if (typeof req.body.layout !== 'string') {
+          next(new Error('File access not allowed'))
+          return
+        }
+        const allowedDir: string = path.resolve('views').toLowerCase()
+        let filePath: string = path.resolve(req.body.layout).toLowerCase()
+        if (!filePath.startsWith(allowedDir + path.sep)) {
+          const fromViews: string = path.resolve('views', req.body.layout).toLowerCase()
+          if (fromViews.startsWith(allowedDir + path.sep)) {
+            filePath = fromViews
+          }
+        }
+        const isPathTraversal: boolean = !filePath.startsWith(allowedDir + path.sep)
+        const isForbiddenFile: boolean = isPathTraversal ||
+          filePath.includes('ftp') ||
+          filePath.includes('ctf.key') ||
+          filePath.includes('encryptionkeys') ||
+          filePath.includes('.env') ||
+          filePath.endsWith('.ts') ||
+          filePath.endsWith('.js') ||
+          filePath.endsWith('.json') ||
+          filePath.endsWith('.yml') ||
+          filePath.endsWith('.yaml') ||
+          filePath.endsWith('.md')
         if (!isForbiddenFile) {
           res.render('dataErasureResult', {
             ...req.body,
